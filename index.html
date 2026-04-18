@@ -1492,10 +1492,13 @@ scheduleReminders();
 })();
 </script>
 <script>
-if("serviceWorker"in navigator){
-  window.addEventListener("load",()=>{
-    navigator.serviceWorker.register("sw.js").catch(e=>console.log("SW err",e));
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/glucosa-app/sw.js", {
+      scope: "/glucosa-app/"
+    }).catch(e => console.log("SW error:", e));
   });
+}
   // When app comes to foreground (tapping notification), play sound
   navigator.serviceWorker.addEventListener('message', e=>{
     if(e.data && e.data.type === 'PLAY_SOUND') playMorphoSound();
