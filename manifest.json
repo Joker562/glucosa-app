@@ -1,14 +1,26 @@
+
 {
-  "name": "Dread Suit — Monitor de Glucosa",
-  "short_name": "Dread Suit",
-  "description": "Monitor de glucosa con temática Metroid Dread",
-  "start_url": "./glucosa_tracker_app.html",
+  "name": "DREAD SUIT — Monitor de Glucosa",
+  "short_name": "Glucosa",
+  "description": "Monitor personal de glucosa sin conexión",
+  "start_url": "/glucosa-app/index.html",
+  "scope": "/glucosa-app/",
   "display": "standalone",
   "background_color": "#080808",
   "theme_color": "#080808",
   "orientation": "portrait-primary",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {
+      "src": "/glucosa-app/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/glucosa-app/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ]
 }
