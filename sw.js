@@ -1,15 +1,21 @@
-const CACHE = "glucosa-v5";
-const STATIC = [
-  "./manifest.json",
-  "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"
+const CACHE = 'glucosa-v2';
+const BASE = '/glucosa-app/';
+const ASSETS = [
+  BASE,
+  BASE + 'index.html',
+  BASE + 'manifest.json',
+  BASE + 'icon-192.png',
+  BASE + 'icon-512.png'
 ];
 
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS))
+  );
   self.skipWaiting();
 });
 
-self.addEventListener("activate", e => {
+self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
@@ -18,81 +24,44 @@ self.addEventListener("activate", e => {
   self.clients.claim();
 });
 
-self.addEventListener("fetch", e => {
-  const url = e.request.url;
-  if (url.includes(".html")) {
-    e.respondWith(
-      fetch(e.request)
-        .then(res => { caches.open(CACHE).then(c => c.put(e.request, res.clone())); return res; })
-        .catch(() => caches.match(e.request))
-    );
-    return;
-  }
+self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).then(res => {
-        caches.open(CACHE).then(c => c.put(e.request, res.clone()));
-        return res;
-      });
-    })
+    caches.match(e.request).then(r => r || fetch(e.request).catch(() =>
+      caches.match(BASE + 'index.html')
+    ))
   );
 });
 
-// ── Recibir mensajes desde la app para programar notificaciones ──
-self.addEventListener("message", e => {
-  if (e.data && e.data.type === "SCHEDULE_REMINDERS") {
-    scheduleFromSW(e.data.reminders);
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SCHEDULE_REMINDERS') {
+    self.reminders = e.data.reminders;
   }
-  if (e.data && e.data.type === "SHOW_TEST") {
-    self.registration.showNotification("DREAD SUIT // GLUCOSA", {
-      body: "✓ Notificaciones funcionando correctamente",
-      icon: "./icon-192.png",
-      badge: "./icon-192.png",
+  if (e.data?.type === 'SHOW_TEST') {
+    self.registration.showNotification('🔵 DREAD SUIT', {
+      body: 'Sistema de recordatorios activo ✓',
+      icon: BASE + 'icon-192.png',
       vibrate: [200, 100, 200]
     });
   }
 });
 
-// ── Programar alarmas con setTimeout dentro del SW ──────────────
-let swTimers = [];
-function scheduleFromSW(reminders) {
-  swTimers.forEach(t => clearTimeout(t));
-  swTimers = [];
+async function checkReminders() {
+  if (!self.reminders) return;
   const now = new Date();
-  reminders.filter(r => r.active).forEach(r => {
-    const [h, m] = r.time.split(":").map(Number);
-    const next = new Date(now);
-    next.setHours(h, m, 0, 0);
-    if (next <= now) next.setDate(next.getDate() + 1);
-    const ms = next - now;
-    const t = setTimeout(() => {
-      self.registration.showNotification("DREAD SUIT // GLUCOSA", {
+  const hm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  for (const r of self.reminders) {
+    if (r.active && r.time === hm) {
+      await self.registration.showNotification('💉 DREAD SUIT — Recordatorio', {
         body: r.label,
-        icon: "./icon-192.png",
-        badge: "./icon-192.png",
+        icon: BASE + 'icon-192.png',
         vibrate: [300, 100, 300],
         tag: r.id,
         renotify: true
       });
-      // Re-schedule for next day
-      scheduleFromSW(reminders);
-    }, ms);
-    swTimers.push(t);
-  });
+    }
+  }
 }
 
-// ── Al tocar la notificación, abrir la app ─────────────────────
-self.addEventListener("notificationclick", e => {
-  e.notification.close();
-  e.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
-      if (list.length > 0) {
-        list[0].focus();
-        list[0].postMessage({ type: "PLAY_SOUND" });
-        return;
-      }
-      return clients.openWindow("./glucosa_tracker_app.html");
-    })
-  );
+self.addEventListener('periodicsync', e => {
+  if (e.tag === 'check-reminders') e.waitUntil(checkReminders());
 });
